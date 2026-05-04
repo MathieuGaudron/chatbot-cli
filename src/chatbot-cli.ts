@@ -5,12 +5,13 @@ import { PROVIDERS, getProvider, switchProvider } from './providers';
 import { printHistory } from './history';
 import { chatStream } from './chat';
 import { resumeConversation } from './resume';
+import { translateLast } from './translate';
 
 async function main(): Promise<void> {
   const rl = readline.createInterface({ input, output });
 
   console.log(
-    'Chatbot CLI — Phase 6. (/history, /provider <name>, /resume, Ctrl+C pour quitter)\n',
+    'Chatbot CLI — Phase 7. (/history, /provider <name>, /resume, /translate <langue>, Ctrl+C)\n',
   );
 
   while (true) {
@@ -26,6 +27,22 @@ async function main(): Promise<void> {
       try {
         process.stdout.write('\nRésumé :\n');
         await resumeConversation();
+        process.stdout.write('\n\n');
+      } catch (err) {
+        console.error(`Erreur : ${(err as Error).message}\n`);
+      }
+      continue;
+    }
+
+    if (userMessage.startsWith('/translate ')) {
+      const lang = userMessage.slice('/translate '.length).trim();
+      if (!lang) {
+        console.log('Usage : /translate <langue>\n');
+        continue;
+      }
+      try {
+        process.stdout.write('Traduction : ');
+        await translateLast(lang);
         process.stdout.write('\n\n');
       } catch (err) {
         console.error(`Erreur : ${(err as Error).message}\n`);
