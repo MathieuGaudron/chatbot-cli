@@ -1,18 +1,15 @@
-import { history, MAX_HISTORY } from './history';
+import { history, MAX_HISTORY, Message } from './history';
 import { getProvider } from './providers';
 import { compressHistory } from './compress';
 
-export async function chatStream(userMessage: string): Promise<string> {
+export async function streamCompletion(
+  messages: Message[],
+  opts: { temperature?: number } = {},
+): Promise<string> {
   const provider = getProvider();
   if (!provider.key) {
     throw new Error('Clé API manquante pour le provider courant');
   }
-
-  if (history.length > MAX_HISTORY) {
-    await compressHistory();
-  }
-
-  history.push({ role: 'user', content: userMessage });
 
   const res = await fetch(provider.url, {
     method: 'POST',
@@ -22,8 +19,9 @@ export async function chatStream(userMessage: string): Promise<string> {
     },
     body: JSON.stringify({
       model: provider.model,
-      messages: history,
+      messages,
       stream: true,
+      ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
     }),
   });
 
@@ -48,6 +46,18 @@ export async function chatStream(userMessage: string): Promise<string> {
     }
   }
 
-  history.push({ role: 'assistant', content: fullReply });
   return fullReply;
+}
+
+export async function chatStream(userMessage: string): Promise<string> {
+  if (history.length > MAX_HISTORY) {
+    await compressHistory();
+  }
+
+  history.push({ role: 'user', content: userMessage });
+
+  const reply = await streamCompletion(history);
+
+  history.push({ role: 'assistant', content: reply });
+  return reply;
 }

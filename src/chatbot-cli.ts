@@ -4,12 +4,13 @@ import { stdin as input, stdout as output } from 'node:process';
 import { PROVIDERS, getProvider, switchProvider } from './providers';
 import { printHistory } from './history';
 import { chatStream } from './chat';
+import { resumeConversation } from './resume';
 
 async function main(): Promise<void> {
   const rl = readline.createInterface({ input, output });
 
   console.log(
-    'Chatbot CLI — Phase 5. (/history, /provider <name>, Ctrl+C pour quitter)\n',
+    'Chatbot CLI — Phase 6. (/history, /provider <name>, /resume, Ctrl+C pour quitter)\n',
   );
 
   while (true) {
@@ -18,6 +19,17 @@ async function main(): Promise<void> {
 
     if (userMessage === '/history') {
       printHistory();
+      continue;
+    }
+
+    if (userMessage === '/resume') {
+      try {
+        process.stdout.write('\nRésumé :\n');
+        await resumeConversation();
+        process.stdout.write('\n\n');
+      } catch (err) {
+        console.error(`Erreur : ${(err as Error).message}\n`);
+      }
       continue;
     }
 
