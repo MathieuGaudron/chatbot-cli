@@ -1,6 +1,7 @@
 import { history, MAX_HISTORY, Message } from './history';
 import { getProvider } from './providers';
 import { compressHistory } from './compress';
+import { recordCall, Usage } from './metrics';
 
 export async function streamCompletion(
   messages: Message[],
@@ -10,6 +11,8 @@ export async function streamCompletion(
   if (!provider.key) {
     throw new Error('Clé API manquante pour le provider courant');
   }
+
+  const start = Date.now();
 
   const res = await fetch(provider.url, {
     method: 'POST',
@@ -21,6 +24,7 @@ export async function streamCompletion(
       model: provider.model,
       messages,
       stream: true,
+      stream_options: { include_usage: true },
       ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
     }),
   });
@@ -29,6 +33,7 @@ export async function streamCompletion(
 
   const decoder = new TextDecoder();
   let fullReply = '';
+  let usage: Usage | null = null;
 
   for await (const chunk of res.body as any) {
     const text = decoder.decode(chunk);
@@ -37,14 +42,18 @@ export async function streamCompletion(
       const payload = line.slice(6).trim();
       if (payload === '[DONE]') continue;
       try {
-        const delta = JSON.parse(payload).choices[0]?.delta?.content;
+        const parsed = JSON.parse(payload);
+        const delta = parsed.choices?.[0]?.delta?.content;
         if (delta) {
           process.stdout.write(delta);
           fullReply += delta;
         }
+        if (parsed.usage) usage = parsed.usage;
       } catch {}
     }
   }
+
+  recordCall(usage, Date.now() - start);
 
   return fullReply;
 }

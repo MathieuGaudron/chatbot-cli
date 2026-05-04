@@ -6,12 +6,13 @@ import { printHistory } from './history';
 import { chatStream } from './chat';
 import { resumeConversation } from './resume';
 import { translateLast } from './translate';
+import { printSessionMetrics } from './metrics';
 
 async function main(): Promise<void> {
   const rl = readline.createInterface({ input, output });
 
   console.log(
-    'Chatbot CLI — Phase 7. (/history, /provider <name>, /resume, /translate <langue>, Ctrl+C)\n',
+    'Chatbot CLI. (/history, /provider <name>, /resume, /translate <langue>, /cost, Ctrl+C)\n',
   );
 
   while (true) {
@@ -20,6 +21,11 @@ async function main(): Promise<void> {
 
     if (userMessage === '/history') {
       printHistory();
+      continue;
+    }
+
+    if (userMessage === '/cost') {
+      printSessionMetrics();
       continue;
     }
 
